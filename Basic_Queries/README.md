@@ -397,8 +397,152 @@ GROUP BY
 ORDER BY
     average_salary_for_skill DESC;
 ```
+## Advanced Date and Time Manipulation (Casting, Time Zones, and Extraction)
 
+### Exercise 27: Explicit Date Casting (::DATE)
+Goal: Format timestamp values by stripping hours and converting fields directly into clean date types.
+```sql
+SELECT 
+    job_title_short AS job_title,
+    job_location AS location,
+    job_posted_date :: DATE AS date
+FROM 
+    job_postings_fact;
+```
 
+### Exercise 28: Time Zone Adjustments (AT TIME ZONE)
+Goal: Adapt raw UTC time stamps to represent accurate regional values within Eastern Standard Time (EST).
+```sql
+SELECT 
+    job_title_short AS job_title,
+    job_location AS location,
+    job_posted_date AT TIME ZONE 'UTC' AT TIME ZONE 'EST' AS date
+FROM
+    job_postings_fact
+LIMIT 5;
+```
+
+### Exercise 29: Extracting Components from Timestamps (EXTRACT)
+Goal: Pull isolated specific month values out of database transaction fields.
+```sql
+SELECT 
+    job_title_short AS job_title,
+    job_location AS location,
+    job_posted_date AT TIME ZONE 'UTC' AT TIME ZONE 'EST' AS date,
+    EXTRACT(MONTH FROM job_posted_date) AS date_month,
+    EXTRACT(MONTH FROM job_posted_date) AS date_year
+FROM
+    job_postings_fact
+LIMIT 5;
+```
+
+### Exercise 30: Trend Analysis using Date Aggregation
+Goal: Track monthly trends for specific titles by grouping postings together by their month components.
+```sql
+SELECT
+    COUNT(job_id) AS job_posted_count,
+    EXTRACT(MONTH FROM job_posted_date) AS month
+FROM
+    job_postings_fact
+WHERE
+    job_title = 'Data Analyst'
+GROUP BY
+    month
+ORDER BY
+    job_posted_count DESC;
+```
+
+### Exercise 31: Advanced Time Zone and Year Aggregation
+Goal: Count annual entries by month adjusted to New York time parameters for a target calendar year.
+```sql
+SELECT
+    EXTRACT(MONTH FROM job_posted_date AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') AS month,
+    COUNT(job_id) AS job_count
+FROM
+    job_postings_fact
+WHERE
+    EXTRACT(YEAR FROM job_posted_date AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') = 2023
+GROUP BY
+    month
+ORDER BY
+    month;
+```
+
+---
+
+## Database Architecture and Table Partitioning (CREATE TABLE AS)
+
+### Exercise 32: Building Structural Tables from Custom Row Splits
+Goal: Partition a main transactional database by creating distinct independent sub-tables mapped to individual operational months.
+```sql
+CREATE TABLE january_jobs AS
+SELECT *
+FROM job_postings_fact
+WHERE EXTRACT(MONTH FROM job_posted_date) = 1;
+
+CREATE TABLE february_jobs AS
+SELECT *
+FROM job_postings_fact
+WHERE EXTRACT(MONTH FROM job_posted_date) = 2;
+
+CREATE TABLE march_jobs AS
+SELECT *
+FROM job_postings_fact
+WHERE EXTRACT(MONTH FROM job_posted_date) = 3;
+```
+
+---
+
+## Conditional Logic and Row Classification (CASE WHEN)
+
+### Exercise 33: Multi-Tiered Conditional Value Tagging
+Goal: Use case evaluation criteria to dynamically sort geographical rows into custom descriptive business categories.
+```sql
+SELECT
+    job_title_short,
+    job_location,
+    CASE
+        WHEN job_location = 'Anywhere' THEN 'Remote'
+        WHEN job_location = 'New York, NY' THEN 'Local'
+        ELSE 'Onsite'
+    END AS location_category
+FROM 
+    job_postings_fact;
+```
+
+### Exercise 34: Group Categorization Summaries
+Goal: Group the entire active dataset together by custom-labeled attributes to gauge overall volume splits.
+```sql
+SELECT
+    COUNT(job_id) AS number_of_jobs,
+    CASE
+        WHEN job_location = 'Anywhere' THEN 'Remote'
+        WHEN job_location = 'New York, NY' THEN 'Local'
+        ELSE 'Onsite'
+    END AS location_category
+FROM
+    job_postings_fact
+GROUP BY
+    location_category;
+```
+
+### Exercise 35: Filtered Categorical Group Metrics
+Goal: Isolate target technical roles and evaluate their volume distribution across custom conditional classifications.
+```sql
+SELECT
+    COUNT(job_id) AS number_of_jobs,
+    CASE
+        WHEN job_location = 'Anywhere' THEN 'Remote'
+        WHEN job_location = 'New York, NY' THEN 'Local'
+        ELSE 'Onsite'
+    END AS location_category
+FROM
+    job_postings_fact
+WHERE
+    job_title_short = 'Data Analyst'
+GROUP BY
+    location_category;
+```
 
 
 
