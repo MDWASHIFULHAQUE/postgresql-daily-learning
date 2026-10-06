@@ -543,6 +543,90 @@ WHERE
 GROUP BY
     location_category;
 ```
+### Exercise 36: Numerical Data Bucketing via Conditional Ranges
+Goal: Categorize average yearly salaries for Data Analyst positions into specific financial tiers (High, Standard, Low) and order the results from the highest salary down.
+```sql
+SELECT
+    job_title_short,
+    salary_year_avg,
+    CASE
+        WHEN salary_year_avg > 100000 THEN 'HIGH'
+        WHEN salary_year_avg BETWEEN 60000 AND 100000 THEN 'Standard'
+        ELSE 'LOW'
+    END AS salary_bucket
+FROM
+    job_postings_fact
+WHERE job_title_short LIKE '%Data Analyst%'
+ORDER BY
+    salary_year_avg DESC;
+```
+---
+## Subqueries and Derived Tables (Inline SELECT Statements)
+
+### Exercise 37: Data Retrieval from an Inline Derived Subquery
+Goal: Execute a query against a subquery dataset that filters and isolates only the job postings from the month of January.
+```sql
+SELECT *
+FROM (
+    SELECT *
+    FROM job_postings_fact
+    WHERE EXTRACT(MONTH FROM job_posted_date) = 1
+) AS january_jobs;
+```
+---
+
+## Common Table Expressions (CTEs)
+
+### Exercise 38: Temporary Result Sets using WITH Clauses
+Goal: Structure a temporary named result set to isolate all job postings from January and query directly from it.
+```sql
+WITH january_jobs AS (
+    SELECT *
+    FROM job_postings_fact
+    WHERE EXTRACT(MONTH FROM job_posted_date) = 1
+)
+SELECT * FROM january_jobs;
+```
+### Exercise 39: Nested Subqueries using Set Matching (IN)
+Goal: Retrieve company names from the company dimensions table whose IDs match job postings that explicitly do not require a degree.
+```sql
+SELECT
+    company_id,
+    name AS company_name
+FROM
+    company_dim
+WHERE company_id IN (
+    SELECT
+        company_id
+    FROM
+        job_postings_fact
+    WHERE
+        job_no_degree_mention = TRUE
+    ORDER BY
+        company_id
+);
+```
+### Exercise 40: Multi-Table Joins against Aggregated CTEs
+Goal: Use a Common Table Expression to calculate total job postings per company ID, then join that result set onto the company dimensions table to display company names alongside their corresponding job volume metrics, ordered highest to lowest.
+```sql
+WITH company_job_count AS (
+    SELECT
+        company_id,
+        COUNT(*) AS total_jobs
+    FROM
+        job_postings_fact
+    GROUP BY
+        company_id
+)
+SELECT
+    company_dim.name AS company_name,
+    company_job_count.total_jobs
+FROM
+    company_dim
+LEFT JOIN company_job_count ON company_job_count.company_id = company_dim.company_id
+ORDER BY
+    total_jobs DESC;
+```
 
 
 
